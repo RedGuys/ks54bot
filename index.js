@@ -1,12 +1,45 @@
-const Telegraf = require('telegraf'); const session = require('telegraf/session'); const Database = require('./Database'); const Api = require('./Api');
+const Telegraf = require('telegraf');
+const session = require('telegraf/session');
+const Database = require('./Database');
+const Api = require('./Api');
 
 let bot = new Telegraf.Telegraf(process.env.TOKEN);
 bot.use(session());
-let database = new Database(process.env.DATABASE_URL)
+let database = new Database(process.env.DATABASE_URL);
+let axios = require('axios');
 
 bot.use(async (ctx, next) => {
+    let start = new Date();
     ctx.userdata = await database.prepareUser(ctx.from.id);
     await next();
+    let ms = new Date() - start;
+    try {
+        if (ctx.message && ctx.message.text.startsWith("/")) {
+            let res = await axios.put("https://api.redguy.ru/v1/logs/", {
+                service: 3,
+                content: "Command " + ctx.message.text.split(" ")[0].substring(1) + " processed in " + ms + "ms",
+                level: "info"
+            }, {
+                headers: {
+                    authorization: "Bearer " + process.env.LOGS_TOKEN
+                }
+            });
+            console.log(res.data)
+        }
+        if (ctx.callbackQuery && ctx.callbackQuery.data) {
+            await axios.put("https://api.redguy.ru/v1/logs/", {
+                service: 3,
+                content: "Callback " + ctx.callbackQuery.data + " processed in " + ms + "ms",
+                level: "info"
+            }, {
+                headers: {
+                    authorization: "Bearer " + process.env.LOGS_TOKEN
+                }
+            });
+        }
+    } catch (e) {
+        console.log(e)
+    }
 });
 
 bot.start(async (ctx) => {
@@ -124,8 +157,8 @@ bot.action(/get_week_type/, async (ctx) => {
 bot.action(/get_documents/, async (ctx) => {
     let documents = await Api.getDocuments(await Api.login(ctx.userdata.username, ctx.userdata.user_password));
     let text = "Справки:\n";
-    for (let i = Math.max(0,documents.length-5); i < documents.length; i++) {
-        text+=`${documents[i].id} от ${documents[i].from} ${documents[i].type} для ${documents[i]['for']}: ${documents[i].status}\n`;
+    for (let i = Math.max(0, documents.length - 5); i < documents.length; i++) {
+        text += `${documents[i].id} от ${documents[i].from} ${documents[i].type} для ${documents[i]['for']}: ${documents[i].status}\n`;
     }
     await ctx.editMessageText(text, Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
     await ctx.answerCbQuery();
@@ -135,13 +168,13 @@ bot.action(/get_schedules/, async (ctx) => {
     await ctx.editMessageText("Выберите тип расписания:", Telegraf.Extra.markup(m => m.inlineKeyboard([[
         m.callbackButton("Понедельник", "get_schedule_0"),
         m.callbackButton("Вторник", "get_schedule_1"),
-    ],[
+    ], [
         m.callbackButton("Среда", "get_schedule_2"),
         m.callbackButton("Четверг", "get_schedule_3"),
     ], [
         m.callbackButton("Пятница", "get_schedule_4"),
         m.callbackButton("Суббота", "get_schedule_5"),
-    ],[
+    ], [
         m.callbackButton("Назад", "menu")
     ]])));
     await ctx.answerCbQuery();
@@ -151,7 +184,7 @@ bot.action(/get_schedule_(\d)/, async (ctx) => {
     let schedule = await Api.getSchedule(await Api.login(ctx.userdata.username, ctx.userdata.user_password));
     schedule = schedule[parseInt(ctx.match[1])];
     let text = "";
-    if(schedule) {
+    if (schedule) {
         for (let i = 0; i < schedule.lessons.length; i++) {
             if (schedule.lessons[i].name === undefined) {
                 text += "------\n";
@@ -163,7 +196,7 @@ bot.action(/get_schedule_(\d)/, async (ctx) => {
             }
         }
     }
-    if(text === "") text = "Нет пар";
+    if (text === "") text = "Нет пар";
     await ctx.editMessageText(text, Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "get_schedules")]])));
     await ctx.answerCbQuery();
 });
@@ -179,22 +212,22 @@ bot.on("message", async (ctx) => {
             ctx.session.username = ctx.message.text;
             ctx.session.state = "wait_password";
             await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
-            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message,null, "Отправьте ваш пароль", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Отправьте ваш пароль", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
             break;
         }
         case "wait_password": {
             let password = ctx.message.text;
             let username = ctx.session.username;
             await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
-            await bot.telegram.editMessageText(ctx.from.id,  ctx.session.message, null,  "Проверка данных...");
+            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Проверка данных...");
             try {
                 await Api.login(username, password);
             } catch (e) {
-                await bot.telegram.editMessageText(ctx.from.id,  ctx.session.message,  null, "Неверные данные!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Неверные данные!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
                 return;
             }
             await database.setUserAuth(ctx.from.id, username, password);
-            await bot.telegram.editMessageText(ctx.from.id,  ctx.session.message, null, "Авторизация успешна!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Авторизация успешна!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
         }
     }
 });
