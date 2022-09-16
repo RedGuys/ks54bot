@@ -165,7 +165,7 @@ bot.action(/get_documents/, async (ctx) => {
 });
 
 bot.action(/get_schedules/, async (ctx) => {
-    await ctx.editMessageText("Выберите тип расписания:", Telegraf.Extra.markup(m => m.inlineKeyboard([[
+    await ctx.editMessageText("Выберите день недели:", Telegraf.Extra.markup(m => m.inlineKeyboard([[
         m.callbackButton("Понедельник", "get_schedule_0"),
         m.callbackButton("Вторник", "get_schedule_1"),
     ], [
