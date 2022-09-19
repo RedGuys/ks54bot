@@ -192,7 +192,11 @@ bot.action(/get_schedule_(\d)/, async (ctx) => {
                 text += `${schedule.lessons[i].name} - ${schedule.lessons[i].cabinet.join("/")} (${schedule.lessons[i].teacher})\n`;
             }
             if (schedule.lessons[i].alternative) {
-                text += ` \\ ${schedule.lessons[i].alternative.name} - ${schedule.lessons[i].alternative.cabinet.join("/")} (${schedule.lessons[i].alternative.teacher})\n`;
+                if (schedule.lessons[i].alternative.name === undefined) {
+                    text += " \\ ------\n";
+                } else {
+                    text += ` \\ ${schedule.lessons[i].alternative.name} - ${schedule.lessons[i].alternative.cabinet.join("/")} (${schedule.lessons[i].alternative.teacher})\n`;
+                }
             }
         }
     }

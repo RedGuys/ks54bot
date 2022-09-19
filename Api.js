@@ -70,6 +70,10 @@ module.exports = class Api {
                         day.lessons.push(lesson);
                         break;
                     }
+                    case 1: {
+                        day.lessons[day.lessons.length-1].alternative = {};
+                        break;
+                    }
                 }
             }
             schedule.push(day);
