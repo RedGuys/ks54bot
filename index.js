@@ -136,7 +136,7 @@ bot.action(/cabinets/, async (ctx) => {
 
 bot.action(/cabinet_(\d+)/, async (ctx) => {
     let cabinet = await database.getCabinet(ctx.match[1]);
-    await ctx.editMessageText(`${cabinet.name} находится на ${Math.floor(cabinet.number / 100)} этаже:\n${cabinet.path}`,
+    await ctx.editMessageText(`${cabinet.name} ${(cabinet.number-(Math.floor(cabinet.number/100)*100)===99)?"":"("+cabinet.number+") "}находится на ${Math.floor(cabinet.number / 100)} этаже:\n${cabinet.path}`,
         Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "cabinets")]])));
     await ctx.answerCbQuery();
 });
