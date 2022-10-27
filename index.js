@@ -2,11 +2,13 @@ const Telegraf = require('telegraf');
 const session = require('telegraf/session');
 const Database = require('./Database');
 const Api = require('./Api');
+const kisok = require('./KioskBase');
+let axios = require('axios');
 
+let kioskBase = new kisok(process.env.KIOSK_BASE);
 let bot = new Telegraf.Telegraf(process.env.TOKEN);
 bot.use(session());
 let database = new Database(process.env.DATABASE_URL);
-let axios = require('axios');
 
 bot.use(async (ctx, next) => {
     let start = new Date();
@@ -92,18 +94,25 @@ bot.action(/menu/, async (ctx) => {
 });
 
 bot.action(/select_korpus/, async (ctx) => {
-    await ctx.editMessageText("Выбери свой корпус:", Telegraf.Extra.markup(m => m.inlineKeyboard([[
-        m.callbackButton("Таганское - 1", "confirm_korpus_1"),
-        m.callbackButton("Коломенское - 2", "confirm_korpus_2"),
-    ], [
-        m.callbackButton("Семёновское - 5", "confirm_korpus_5"),
-        m.callbackButton("Рязанское - 6", "confirm_korpus_6"),
-    ], [
-        m.callbackButton("Римское - 7", "confirm_korpus_7"),
-        m.callbackButton("Авиамоторное - 8", "confirm_korpus_8"),
-    ], [
-        m.callbackButton("Назад", "menu")
-    ]])));
+    let ops = await kioskBase.getOPs();
+    let keyboard = [];
+    let x = 0;
+    let row = [];
+    for (let i = 0; i < ops.length; i++) {
+        row.push(Telegraf.Markup.callbackButton(ops[i].op_name+" - "+ops[i].op_number, "confirm_korpus_" + ops[i].op_number));
+        x++;
+        if (x === 2) {
+            keyboard.push(row);
+            row = [];
+            x = 0;
+        }
+    }
+    if (row.length > 0) {
+        keyboard.push(row);
+    }
+    keyboard.push([Telegraf.Markup.callbackButton("Назад", "menu")]);
+
+    await ctx.editMessageText("Выбери свой корпус:", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
     await ctx.answerCbQuery();
 });
 
