@@ -12,6 +12,11 @@ class KioskBase {
         let res = await this.pool.query("SELECT * FROM op;");
         return res[0];
     }
+
+    async getScheduleCalls(op) {
+        let res = await this.pool.query("SELECT * FROM schedule_calls WHERE op_number = ?;", [op]);
+        return res[0];
+    }
 }
 
 module.exports = KioskBase;

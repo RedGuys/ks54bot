@@ -53,7 +53,7 @@ bot.start(async (ctx) => {
     } else {
         row.push(Telegraf.Markup.callbackButton("Изменить корпус", "select_korpus"));
         row.push(Telegraf.Markup.callbackButton("Кабинеты", "cabinets"));
-        row.push(Telegraf.Markup.callbackButton("Карты этажей", "floors"));
+        row.push(Telegraf.Markup.callbackButton("Звонки", "calls"));
     }
     keyboard.push(row);
     if (ctx.userdata.username !== "" && ctx.userdata.user_password !== "") {
@@ -77,7 +77,7 @@ bot.action(/menu/, async (ctx) => {
     } else {
         row.push(Telegraf.Markup.callbackButton("Изменить корпус", "select_korpus"));
         row.push(Telegraf.Markup.callbackButton("Кабинеты", "cabinets"));
-        row.push(Telegraf.Markup.callbackButton("Карты этажей", "floors"));
+        row.push(Telegraf.Markup.callbackButton("Звонки", "calls"));
     }
     keyboard.push(row);
     if (ctx.userdata.username !== "" && ctx.userdata.user_password !== "") {
@@ -216,6 +216,15 @@ bot.action(/get_schedule_(\d)/, async (ctx) => {
 
 bot.action(/floors/, async (ctx) => {
     await ctx.answerCbQuery("Карты этажей ещё составляются :3", true);
+});
+
+bot.action(/calls/, async (ctx) => {
+    let calls = await kioskBase.getScheduleCalls(ctx.userdata.korpus);
+    let text = "Расписание звонков:\n";
+    for (let call of calls) {
+        text += `${call.pair_number} пара: ${call.first_start} - ${call.first_end} | ${call.second_start} - ${call.second_end}\n`;
+    }
+    await ctx.editMessageText(text, Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
 });
 
 bot.on("message", async (ctx) => {
