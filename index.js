@@ -54,6 +54,9 @@ bot.start(async (ctx) => {
         row.push(Telegraf.Markup.callbackButton("Изменить корпус", "select_korpus"));
         row.push(Telegraf.Markup.callbackButton("Кабинеты", "cabinets"));
         row.push(Telegraf.Markup.callbackButton("Звонки", "calls"));
+        keyboard.push(row);
+        row = [];
+        row.push(Telegraf.Markup.callbackButton("Записаться на аэрохоккей", "aero_menu"));
     }
     keyboard.push(row);
     if (ctx.userdata.username !== "" && ctx.userdata.user_password !== "") {
@@ -68,7 +71,7 @@ bot.start(async (ctx) => {
     await ctx.reply("Привет, я бот Коллежда Связи 54 им. П. М. Вострухина.\n\nЯ помогу тебе ориентироваться в учебном здании и твоём расписании.", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
 });
 
-bot.action(/menu/, async (ctx) => {
+bot.action(/^menu/, async (ctx) => {
     let keyboard = [];
 
     let row = [];
@@ -78,6 +81,9 @@ bot.action(/menu/, async (ctx) => {
         row.push(Telegraf.Markup.callbackButton("Изменить корпус", "select_korpus"));
         row.push(Telegraf.Markup.callbackButton("Кабинеты", "cabinets"));
         row.push(Telegraf.Markup.callbackButton("Звонки", "calls"));
+        keyboard.push(row);
+        row = [];
+        row.push(Telegraf.Markup.callbackButton("Записаться на аэрохоккей", "aero_menu"));
     }
     keyboard.push(row);
     if (ctx.userdata.username !== "" && ctx.userdata.user_password !== "") {
@@ -93,13 +99,109 @@ bot.action(/menu/, async (ctx) => {
     await ctx.answerCbQuery();
 });
 
+bot.action(/aero_menu/, async (ctx) => {
+    let row = [];
+    let keyboard = [];
+    row.push(Telegraf.Markup.callbackButton("Записаться на аэрохоккей", "aero_register_start"));
+    keyboard.push(row);
+    row = [];
+    row.push(Telegraf.Markup.callbackButton("Мои записи", "aero_registers"));
+    keyboard.push(row);
+    row = [];
+    row.push(Telegraf.Markup.callbackButton("Назад", "menu"));
+    keyboard.push(row);
+    await ctx.editMessageText("Запись на аэрохоккей.", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
+    await ctx.answerCbQuery();
+});
+
+bot.action(/aero_registers/, async (ctx) => {
+    let row = [];
+    let keyboard = [];
+    let registers = await database.getRecordsByUser(ctx.from.id);
+    for (let register of registers) {
+        let time = await database.getTime(register.time_id);
+        row.push(Telegraf.Markup.callbackButton(time.start_time + " - " + time.end_time, "aero_unregister_" + register.record_id));
+        if (row.length === 3) {
+            keyboard.push(row);
+            row = [];
+        }
+    }
+    if (row.length !== 0) {
+        keyboard.push(row);
+    }
+    row = [];
+    row.push(Telegraf.Markup.callbackButton("Назад", "aero_menu"));
+    keyboard.push(row);
+    await ctx.editMessageText("Мои записи.", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
+    await ctx.answerCbQuery();
+});
+
+bot.action(/aero_unregister_(\d+)/, async (ctx) => {
+    let register_id = ctx.match[1];
+    await database.deleteRecord(register_id);
+    let row = [];
+    let keyboard = [];
+    let registers = await database.getRecordsByUser(ctx.from.id);
+    for (let register of registers) {
+        let time = await database.getTime(register.time_id);
+        row.push(Telegraf.Markup.callbackButton(time.start_time + " - " + time.end_time, "aero_unregister_" + register.record_id));
+        if (row.length === 3) {
+            keyboard.push(row);
+            row = [];
+        }
+    }
+    if (row.length !== 0) {
+        keyboard.push(row);
+    }
+    row = [];
+    row.push(Telegraf.Markup.callbackButton("Назад", "aero_menu"));
+    keyboard.push(row);
+    await ctx.editMessageText("Мои записи.", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
+    await ctx.answerCbQuery("Запись удалена.");
+});
+
+bot.action(/aero_register_start/, async (ctx) => {
+    let keyboard = [];
+    let row = [];
+    let times = await database.getFreeTimes();
+    for (let time of times) {
+        row.push(Telegraf.Markup.callbackButton(time.desk + " " + time.start_time + " - " + time.end_time, "aero_register_time_" + time.id));
+        if (row.length === 3) {
+            keyboard.push(row);
+            row = [];
+        }
+    }
+    if (row.length > 0) {
+        keyboard.push(row);
+    }
+    row = [];
+    row.push(Telegraf.Markup.callbackButton("Назад", "aero_menu"));
+    keyboard.push(row);
+    await ctx.editMessageText("Выберите время:", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
+    await ctx.answerCbQuery();
+});
+
+bot.action(/aero_register_time_(\d+)/, async (ctx) => {
+    let time_id = ctx.match[1];
+    if (!await database.isTimeStillFree(time_id)) {
+        await ctx.editMessageText("К сожалению, это время уже занято.");
+        await ctx.answerCbQuery();
+        return;
+    }
+    ctx.session.time = time_id;
+    ctx.session.message = ctx.callbackQuery.message.message_id;
+    ctx.session.state = "aero_fio";
+    await ctx.editMessageText("Введите ФИО", Telegraf.Extra.markup(m => m.inlineKeyboard([[Telegraf.Markup.callbackButton("Отмена", "aero_menu")]])));
+    await ctx.answerCbQuery();
+});
+
 bot.action(/select_korpus/, async (ctx) => {
     let ops = await kioskBase.getOPs();
     let keyboard = [];
     let x = 0;
     let row = [];
     for (let i = 0; i < ops.length; i++) {
-        row.push(Telegraf.Markup.callbackButton(ops[i].op_name+" - "+ops[i].op_number, "confirm_korpus_" + ops[i].op_number));
+        row.push(Telegraf.Markup.callbackButton(ops[i].op_name + " - " + ops[i].op_number, "confirm_korpus_" + ops[i].op_number));
         x++;
         if (x === 2) {
             keyboard.push(row);
@@ -145,7 +247,7 @@ bot.action(/cabinets/, async (ctx) => {
 
 bot.action(/cabinet_(\d+)/, async (ctx) => {
     let cabinet = await database.getCabinet(ctx.match[1]);
-    await ctx.editMessageText(`${cabinet.name} ${(cabinet.number-(Math.floor(cabinet.number/100)*100)===99)?"":"("+cabinet.number+") "}находится на ${Math.floor(cabinet.number / 100)} этаже:\n${cabinet.path}`,
+    await ctx.editMessageText(`${cabinet.name} ${(cabinet.number - (Math.floor(cabinet.number / 100) * 100) === 99) ? "" : "(" + cabinet.number + ") "}находится на ${Math.floor(cabinet.number / 100)} этаже:\n${cabinet.path}`,
         Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "cabinets")]])));
     await ctx.answerCbQuery();
 });
@@ -189,6 +291,13 @@ bot.action(/get_schedules/, async (ctx) => {
     await ctx.answerCbQuery();
 });
 
+bot.action(/cancel_aero_(\d+)/, async (ctx) => {
+    let id = parseInt(ctx.match[1]);
+    await database.deleteRecord(id);
+    await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
+    await ctx.answerCbQuery();
+});
+
 bot.action(/get_schedule_(\d)/, async (ctx) => {
     let schedule = await Api.getSchedule(await Api.login(ctx.userdata.username, ctx.userdata.user_password));
     schedule = schedule[parseInt(ctx.match[1])];
@@ -218,6 +327,10 @@ bot.action(/floors/, async (ctx) => {
     await ctx.answerCbQuery("Карты этажей ещё составляются :3", true);
 });
 
+bot.action(/deleteMessage/, async (ctx) => {
+    await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
+});
+
 bot.action(/calls/, async (ctx) => {
     let calls = await kioskBase.getScheduleCalls(ctx.userdata.korpus);
     let text = "Расписание звонков:\n";
@@ -228,28 +341,61 @@ bot.action(/calls/, async (ctx) => {
 });
 
 bot.on("message", async (ctx) => {
-    if (!ctx.session.state) return;
-    switch (ctx.session.state) {
-        case "wait_username": {
-            ctx.session.username = ctx.message.text;
-            ctx.session.state = "wait_password";
-            await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
-            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Отправьте ваш пароль", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
-            break;
-        }
-        case "wait_password": {
-            let password = ctx.message.text;
-            let username = ctx.session.username;
-            await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
-            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Проверка данных...");
-            try {
-                await Api.login(username, password);
-            } catch (e) {
-                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Неверные данные!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
-                return;
+    if (!ctx.session.state) {
+        let staff = kioskBase.searchStaff(ctx.message.text.replaceAll(".", " "));
+        if (staff == null) return;
+        await ctx.replyWithPhoto("http://old.kioskapi.ru/terminal/media/teachers/" + staff.id, Telegraf.Extra
+            .caption(`${staff.name} - ${staff.post}\nКабинет: ${staff.cab}`)
+            .markup(m => m.inlineKeyboard([[m.callbackButton("Закрыть", "deleteMessage")]])));
+    } else {
+        switch (ctx.session.state) {
+            case "aero_fio": {
+                await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
+                if (!await database.isTimeStillFree(ctx.session.time)) {
+                    ctx.session.state = undefined;
+                    await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "К сожалению время уже занято.", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "aero_menu")]])));
+                    return;
+                }
+                ctx.session.state = "aero_group";
+                ctx.session.fio = ctx.message.text;
+                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Введите номер группы:", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "aero_menu")]])));
+                break;
             }
-            await database.setUserAuth(ctx.from.id, username, password);
-            await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Авторизация успешна!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+            case "aero_group": {
+                await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
+                if (!await database.isTimeStillFree(ctx.session.time)) {
+                    ctx.session.state = undefined;
+                    await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "К сожалению время уже занято.", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "aero_menu")]])));
+                    return;
+                }
+                let time = await database.getTime(ctx.session.time);
+                let record = await database.recordOnAero(ctx.session.time, ctx.from.id, ctx.session.fio, ctx.message.text);
+                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null,
+                    `Готово, запись для ${ctx.session.fio} на ${time.start_time} создана.`, Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "aero_menu")]])));
+                await bot.telegram.sendMessage(-837806322, `Запись для <a href="tg://user?id=${ctx.from.id}">${ctx.session.fio} (${ctx.message.text})</a> на ${time.start_time} создана.`, Telegraf.Extra.HTML(true).markup(m => m.inlineKeyboard([[m.callbackButton("Отменить", "cancel_aero_" + record)]])));
+                break;
+            }
+            case "wait_username": {
+                ctx.session.username = ctx.message.text;
+                ctx.session.state = "wait_password";
+                await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
+                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Отправьте ваш пароль", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+                break;
+            }
+            case "wait_password": {
+                let password = ctx.message.text;
+                let username = ctx.session.username;
+                await bot.telegram.deleteMessage(ctx.from.id, ctx.message.message_id);
+                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Проверка данных...");
+                try {
+                    await Api.login(username, password);
+                } catch (e) {
+                    await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Неверные данные!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+                    return;
+                }
+                await database.setUserAuth(ctx.from.id, username, password);
+                await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null, "Авторизация успешна!", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+            }
         }
     }
 });

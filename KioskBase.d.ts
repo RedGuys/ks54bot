@@ -1,7 +1,11 @@
 export default class KioskBase {
     constructor(conString: string);
+
     getOPs(): Promise<OP[]>;
+
     getScheduleCalls(op: number): Promise<ScheduleCall[]>;
+
+    searchStaff(text: string): Staff | null;
 }
 
 export class ScheduleCall {
@@ -32,4 +36,15 @@ export class OP {
     "studsovet_views": number;
     "news_autoload": string;
     "dublicate_timetable": number;
+}
+
+export class Staff {
+    id: number;
+    op: number;
+    name: string;
+    email: string;
+    post: string;
+    cab: string;
+    phone: string;
+    admin: 0 | 1;
 }

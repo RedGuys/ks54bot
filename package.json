@@ -14,11 +14,13 @@
     "mysql2": "^2.3.3",
     "node-html-parser": "^5.4.2",
     "pg": "^8.8.0",
+    "string-similarity": "^4.0.4",
     "telegraf": "3.39"
   },
   "devDependencies": {
     "@types/node": "^18.7.14",
-    "@types/pg": "^8.6.5"
+    "@types/pg": "^8.6.5",
+    "@types/string-similarity": "^4.0.0"
   },
   "engines": {
     "node": "^16.0.0"
