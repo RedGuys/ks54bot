@@ -105,13 +105,24 @@ class Database {
         return v;
     }
 
+    async setState(id, state) {
+        let client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('UPDATE aero_records SET state = $1 WHERE record_id = $2', [state, id]);
+            await client.query('COMMIT');
+        } finally {
+            client.release();
+        }
+    }
+
     async recordOnAero(time, user, fio, group) {
         let client = await this.pool.connect();
         let id = null;
         try {
             await client.query('BEGIN');
-            let res = await client.query('INSERT INTO aero_records (time_id, by_id, by_name, by_group) VALUES ($1, $2, $3, $4)', [time, user, fio, group]);
-            res = await client.query('SELECT * FROM aero_records WHERE time_id = $1 AND by_id = $2 AND by_name = $3 AND by_group = $4', [time, user, fio, group]);
+            await client.query('INSERT INTO aero_records (time_id, by_id, by_name, by_group) VALUES ($1, $2, $3, $4)', [time, user, fio, group]);
+            let res = await client.query('SELECT * FROM aero_records WHERE time_id = $1 AND by_id = $2 AND by_name = $3 AND by_group = $4', [time, user, fio, group]);
             await client.query('COMMIT');
             id = res.rows[0].record_id;
         } finally {
@@ -125,7 +136,7 @@ class Database {
         let records = null;
         try {
             await client.query('BEGIN');
-            let res = await client.query('SELECT * FROM aero_records WHERE by_id = $1', [id]);
+            let res = await client.query('SELECT * FROM aero_records WHERE by_id = $1 AND state != 2', [id]);
             await client.query('COMMIT');
             records = res.rows;
         } finally {
@@ -143,6 +154,31 @@ class Database {
         } finally {
             client.release();
         }
+    }
+
+    async clearAero() {
+        let client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('DELETE FROM aero_records');
+            await client.query('COMMIT');
+        } finally {
+            client.release();
+        }
+    }
+
+    async getRecord(id) {
+        let client = await this.pool.connect();
+        let v = null;
+        try {
+            await client.query('BEGIN');
+            let res = await client.query('SELECT * FROM aero_records WHERE record_id = $1', [id]);
+            await client.query('COMMIT');
+            v = res.rows[0];
+        } finally {
+            client.release();
+        }
+        return v;
     }
 
     async setUserAuth(id, username, password) {
