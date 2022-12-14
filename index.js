@@ -167,7 +167,7 @@ bot.action(/aero_back_(\d+)/, async (ctx) => {
     await database.setState(record_id, 2)
     row.push(Telegraf.Markup.callbackButton("Назад", "aero_registers"));
     keyboard.push(row);
-    await bot.telegram.sendMessage(-837806322,`Запись на ${time.desk} ${time.start_time} - ${time.end_time}\n${register.by_name}, группа ${register.by_group}\n\nИнвентарь сдан`);
+    await bot.telegram.sendMessage(-1001819504528,`Запись на ${time.desk} ${time.start_time} - ${time.end_time}\n${register.by_name}, группа ${register.by_group}\n\nИнвентарь сдан`);
     await ctx.editMessageText(`Инвентарь сдан, спасибо!`, Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
 });
 
@@ -180,7 +180,7 @@ bot.action(/aero_take_(\d+)/, async (ctx) => {
     await database.setState(record_id, 1)
     row.push(Telegraf.Markup.callbackButton("Назад", "aero_info_" + record_id));
     keyboard.push(row);
-    await bot.telegram.sendMessage(-837806322,`Запись на ${time.desk} ${time.start_time} - ${time.end_time}\n${register.by_name}, группа ${register.by_group}\n\nИнвентарь получен`);
+    await bot.telegram.sendMessage(-1001819504528,`Запись на ${time.desk} ${time.start_time} - ${time.end_time}\n${register.by_name}, группа ${register.by_group}\n\nИнвентарь получен`);
     await ctx.editMessageText(`Инвентарь получен, не забудьте вернуть его, хорошей игры!`, Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
 });
 
@@ -193,7 +193,7 @@ bot.action(/aero_unregister_(\d+)/, async (ctx) => {
     let keyboard = [];
     row.push(Telegraf.Markup.callbackButton("Назад", "aero_menu"));
     keyboard.push(row);
-    await bot.telegram.sendMessage(-837806322, `Запись на ${time.desk} ${time.start_time} - ${time.end_time}\n на имя <a href="tg://user?id=${ctx.from.id}">${ctx.session.fio} (${ctx.message.text})</a>, группа ${register.by_group} была отменена`, Telegraf.Extra.HTML(true));
+    await bot.telegram.sendMessage(-1001819504528, `Запись на ${time.desk} ${time.start_time} - ${time.end_time}\n на имя <a href="tg://user?id=${ctx.from.id}">${ctx.session.fio} (${ctx.message.text})</a>, группа ${register.by_group} была отменена`, Telegraf.Extra.HTML(true));
     await ctx.editMessageText("Мои записи.", Telegraf.Extra.markup(m => m.inlineKeyboard(keyboard)));
     await ctx.answerCbQuery("Запись удалена.");
 });
@@ -410,7 +410,7 @@ bot.on("message", async (ctx) => {
                 let record = await database.recordOnAero(ctx.session.time, ctx.from.id, ctx.session.fio, ctx.message.text);
                 await bot.telegram.editMessageText(ctx.from.id, ctx.session.message, null,
                     `Готово, запись для ${ctx.session.fio} на ${time.start_time} создана.`, Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "aero_menu")]])));
-                await bot.telegram.sendMessage(-837806322, `Запись для <a href="tg://user?id=${ctx.from.id}">${ctx.session.fio} (${ctx.message.text})</a> на ${time.start_time} создана.`, Telegraf.Extra.HTML(true).markup(m => m.inlineKeyboard([[m.callbackButton("Отменить", "cancel_aero_" + record)]])));
+                await bot.telegram.sendMessage(-1001819504528, `Запись для <a href="tg://user?id=${ctx.from.id}">${ctx.session.fio} (${ctx.message.text})</a> на ${time.start_time} создана.`, Telegraf.Extra.HTML(true).markup(m => m.inlineKeyboard([[m.callbackButton("Отменить", "cancel_aero_" + record)]])));
                 break;
             }
             case "wait_username": {
