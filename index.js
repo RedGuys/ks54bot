@@ -331,8 +331,11 @@ bot.action(/get_schedules/, async (ctx) => {
 
 bot.action(/cancel_aero_(\d+)/, async (ctx) => {
     let id = parseInt(ctx.match[1]);
+    let record = await database.getRecord(id);
+    let time = await database.getTime(record.time_id);
     await database.deleteRecord(id);
-    await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
+    await ctx.telegram.sendMessage(record.by_id, `Ваша запись на ${time.start_time} была отменена администратором!`);
+    await ctx.editMessageText(`Запись для <a href="tg://user?id=${ctx.from.id}">${record.by_name} (${record.by_group})</a> на ${time.start_time} была отменена администратором <a href="tg://user?id=${ctx.callbackQuery.from.id}">${ctx.callbackQuery.from.first_name}</a>.`, Telegraf.Extra.HTML(true));
     await ctx.answerCbQuery();
 });
 
@@ -378,7 +381,7 @@ bot.action(/calls/, async (ctx) => {
     await ctx.editMessageText(text, Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
 });
 
-bot.on("message", async (ctx) => {
+bot.on("text", async (ctx) => {
     if (!ctx.session.state) {
         let staff = kioskBase.searchStaff(ctx.message.text.replaceAll(".", " "));
         if (staff == null) return;
