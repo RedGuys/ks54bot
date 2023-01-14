@@ -6,7 +6,7 @@ const kisok = require('./KioskBase');
 let axios = require('axios');
 const cron = require('node-cron');
 
-let kioskBase = new kisok(process.env.KIOSK_BASE);
+let kioskBase = new kisok();
 let bot = new Telegraf.Telegraf(process.env.TOKEN);
 bot.use(session());
 let database = new Database(process.env.DATABASE_URL);
@@ -239,7 +239,7 @@ bot.action(/select_korpus/, async (ctx) => {
     let x = 0;
     let row = [];
     for (let i = 0; i < ops.length; i++) {
-        row.push(Telegraf.Markup.callbackButton(ops[i].op_name + " - " + ops[i].op_number, "confirm_korpus_" + ops[i].op_number));
+        row.push(Telegraf.Markup.callbackButton(ops[i].name + " - " + ops[i].id, "confirm_korpus_" + ops[i].id));
         x++;
         if (x === 2) {
             keyboard.push(row);
