@@ -11,9 +11,11 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.27.2",
+    "log4js": "^6.9.1",
     "mysql2": "^2.3.3",
     "node-cron": "^3.0.2",
     "node-html-parser": "^5.4.2",
+    "node-redguy-api": "^1.2.8",
     "pg": "^8.8.0",
     "string-similarity": "^4.0.4",
     "telegraf": "3.39"

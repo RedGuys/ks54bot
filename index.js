@@ -3,8 +3,19 @@ const session = require('telegraf/session');
 const Database = require('./Database');
 const Api = require('./Api');
 const kisok = require('./KioskBase');
-let axios = require('axios');
 const cron = require('node-cron');
+const log4js = require('log4js');
+const logger = log4js.getLogger("Main");
+
+log4js.configure({
+    appenders: {
+        out: {
+            type: 'stdout'
+        }, redguy: {
+            type: "node-redguy-api/lib/Logs/Log4js", token: process.env.LOGS_TOKEN, service: 3
+        }
+    }, categories: {default: {appenders: ['out', 'redguy'], level: 'info'}}
+});
 
 let kioskBase = new kisok();
 let bot = new Telegraf.Telegraf(process.env.TOKEN);
@@ -12,36 +23,29 @@ bot.use(session());
 let database = new Database(process.env.DATABASE_URL);
 
 bot.use(async (ctx, next) => {
+    if (!ctx.from.id) return;
     let start = new Date();
     ctx.userdata = await database.prepareUser(ctx.from.id);
     await next();
     let ms = new Date() - start;
     try {
-        if (ctx.message && ctx.message.text.startsWith("/")) {
-            let res = await axios.put("https://api.redguy.ru/v1/logs/", {
-                service: 3,
-                content: "Command " + ctx.message.text.split(" ")[0].substring(1) + " processed in " + ms + "ms",
-                level: "info"
-            }, {
-                headers: {
-                    authorization: "Bearer " + process.env.LOGS_TOKEN
-                }
-            });
-            console.log(res.data)
+        if (ctx.message && ctx.message.text && ctx.message.text.startsWith("/")) {
+            logger.log("Command " + ctx.message.text.split(" ")[0].substring(1) + " processed in " + ms + "ms");
+        }
+        if (ctx.message && ctx.message.text && !ctx.message.text.startsWith("/")) {
+            logger.log("Message " + ctx.message.text + " processed in " + ms + "ms");
+        }
+        if (ctx.message && ctx.message.sticker) {
+            logger.log("Sticker " + ctx.message.sticker.file_unique_id + " processed in " + ms + "ms");
         }
         if (ctx.callbackQuery && ctx.callbackQuery.data) {
-            await axios.put("https://api.redguy.ru/v1/logs/", {
-                service: 3,
-                content: "Callback " + ctx.callbackQuery.data + " processed in " + ms + "ms",
-                level: "info"
-            }, {
-                headers: {
-                    authorization: "Bearer " + process.env.LOGS_TOKEN
-                }
-            });
+            logger.log("Callback " + ctx.callbackQuery.data + " processed in " + ms + "ms");
+        }
+        if (ctx.inlineQuery) {
+            logger.log("Inline " + ctx.inlineQuery.query + " processed in " + ms + "ms");
         }
     } catch (e) {
-        console.log(e)
+        logger.log(e)
     }
 });
 
