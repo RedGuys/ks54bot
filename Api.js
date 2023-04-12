@@ -54,13 +54,12 @@ module.exports = class Api {
                         break;
                     }
                     case 4: {
-                        let lesson = {
+                        day.lessons[day.lessons.length-1].alternative = {
                             corpus: fields[0].textContent.trim(),
                             name: fields[1].textContent.trim(),
                             teacher: fields[2].textContent.trim(),
                             cabinet: fields[3].structuredText.trim().split("\n")
                         };
-                        day.lessons[day.lessons.length-1].alternative = lesson;
                         break;
                     }
                     case 2: {
