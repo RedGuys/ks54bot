@@ -48,6 +48,11 @@ class Database {
         return cabinets;
     }
 
+    /**
+     * Get cabinet info
+     * @param cabinet Cabinet id
+     * @returns {Promise<null|{id:number,number:number,korpus:number,name:string,path:string}>}
+     */
     async getCabinet(cabinet) {
         let client = await this.pool.connect();
         let v = null;
@@ -62,6 +67,10 @@ class Database {
         return v;
     }
 
+    /**
+     * Get all available times.
+     * @returns {Promise<null|{id:number,desk:string,start_time:string,end_time:string}[]>}
+     */
     async getFreeTimes() {
         let client = await this.pool.connect();
         let v = null;
@@ -83,7 +92,7 @@ class Database {
             await client.query('BEGIN');
             let res = await client.query('select * from aero_times where id = $1 and id not in (select time_id from aero_records)', [time]);
             await client.query('COMMIT');
-            if(res.rowCount > 0) v = true;
+            if (res.rowCount > 0) v = true;
             else v = false;
         } finally {
             client.release();
@@ -91,6 +100,11 @@ class Database {
         return v;
     }
 
+    /**
+     * Get time by id.
+     * @param id time id
+     * @returns {Promise<null|{id:number,desk:string,start_time:string,end_time:string}>}
+     */
     async getTime(id) {
         let client = await this.pool.connect();
         let v = null;
@@ -131,6 +145,11 @@ class Database {
         return id;
     }
 
+    /**
+     * Gets all records created by user
+     * @param id User id
+     * @returns {Promise<null|{record_id:number,time_id:number,by_id:string,by_name:string,by_group:string,state:number}[]>}
+     */
     async getRecordsByUser(id) {
         let client = await this.pool.connect();
         let records = null;
@@ -167,6 +186,11 @@ class Database {
         }
     }
 
+    /**
+     * Get record by id
+     * @param id Record id
+     * @returns {Promise<null|{record_id:number,time_id:number,by_id:string,by_name:string,by_group:string,state:number}>}
+     */
     async getRecord(id) {
         let client = await this.pool.connect();
         let v = null;
