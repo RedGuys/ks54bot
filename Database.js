@@ -92,8 +92,7 @@ class Database {
             await client.query('BEGIN');
             let res = await client.query('select * from aero_times where id = $1 and id not in (select time_id from aero_records)', [time]);
             await client.query('COMMIT');
-            if (res.rowCount > 0) v = true;
-            else v = false;
+            v = res.rowCount > 0;
         } finally {
             client.release();
         }
