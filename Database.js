@@ -1,4 +1,5 @@
 const pg = require('pg');
+const md5 = require("md5");
 
 class Database {
     constructor(connectionStr) {
@@ -213,6 +214,63 @@ class Database {
         } finally {
             client.release();
         }
+    }
+
+    async addTemporalToken(token, refresh_token) {
+        let client = await this.pool.connect();
+        try {
+            let id = md5(refresh_token + Date.now());
+            await client.query('BEGIN');
+            await client.query('INSERT INTO temp_tokens (id, access_token, refresh_token) VALUES ($1, $2, $3)', [id, token, refresh_token]);
+            await client.query('COMMIT');
+            return id;
+        } finally {
+            client.release();
+        }
+        return null;
+    }
+
+    async getTemporalToken(id) {
+        let client = await this.pool.connect();
+        try {
+            await client.query("DELETE FROM temp_tokens WHERE expires_at < NOW()");
+            let response = await client.query('SELECT * FROM temp_tokens WHERE id = $1', [id]);
+            if (response.rowCount > 0) {
+                await client.query('DELETE FROM temp_tokens WHERE id = $1', [id]);
+                return response.rows[0];
+            } else {
+                return null;
+            }
+        } finally {
+            client.release();
+        }
+        return null;
+    }
+
+    async setToken(id, token, refresh_token) {
+        let client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query("INSERT INTO tokens (access_token, refresh_token, user_id) VALUES ($1,$2,$3) ON CONFLICT (user_id) do update SET access_token = $1, refresh_token = $2, expires_at = (CURRENT_TIMESTAMP + '00:55:00'::interval) WHERE tokens.user_id = $3", [token, refresh_token, id]);
+            await client.query('COMMIT');
+        } finally {
+            client.release();
+        }
+    }
+
+    async getToken(id) {
+        let client = await this.pool.connect();
+        try {
+            let response = await client.query('SELECT * FROM tokens WHERE user_id = $1', [id]);
+            if (response.rowCount > 0) {
+                return response.rows[0];
+            } else {
+                return null;
+            }
+        } finally {
+            client.release();
+        }
+        return null;
     }
 }
 

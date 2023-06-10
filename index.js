@@ -6,6 +6,9 @@ const kisok = require('./KioskBase');
 const cron = require('node-cron');
 const log4js = require('log4js');
 const logger = log4js.getLogger("Main");
+const Express = require("express");
+const axios = require("axios");
+const YouTrack = require("./YouTrack");
 
 log4js.configure({
     appenders: {
@@ -22,6 +25,8 @@ let bot = new Telegraf.Telegraf(process.env.TOKEN);
 bot.use(session());
 let database = new Database(process.env.DATABASE_URL);
 let keyboards = require("./Keyboards");
+let site = Express();
+let youtrack = new YouTrack("https://yt.kioskapi.ru/api", database);
 
 bot.use(async (ctx, next) => {
     if (!ctx.from.id) return;
@@ -51,9 +56,47 @@ bot.use(async (ctx, next) => {
 });
 
 bot.start(async (ctx) => {
-    await ctx.reply("Привет, я бот Коллежда Связи 54 им. П. М. Вострухина.\n\nЯ помогу тебе ориентироваться в учебном здании и твоём расписании.",
-        Telegraf.Extra.markup(m => m.inlineKeyboard(keyboards.populateMainMenuKeyboard(ctx))));
+    if(/ (\w+)/.test(ctx.message.text)) {
+        let rg = / (?<data>\w+)/.exec(ctx.message.text);
+        let parts = rg.groups.data.split("_");
+        switch (parts[0]) {
+            case "token": {
+                let token = await database.getTemporalToken(parts[1]);
+                if(!token) return;
+                await database.setToken(ctx.from.id, token.access_token, token.refresh_token);
+                await ctx.reply("Вы успешно авторизовались");
+                break;
+            }
+        }
+    } else {
+        await ctx.reply("Привет, я бот Коллежда Связи 54 им. П. М. Вострухина.\n\nЯ помогу тебе ориентироваться в учебном здании и твоём расписании.",
+            Telegraf.Extra.markup(m => m.inlineKeyboard(keyboards.populateMainMenuKeyboard(ctx))));
+    }
 });
+
+bot.command("authorize", async (ctx) => {
+    await ctx.reply("Для авторизации нажмите на кнопку", {
+        reply_markup: {
+            inline_keyboard: [
+                [{text: "Авторизоваться", url: "https://yt.kioskapi.ru/hub/api/rest/oauth2/auth?client_id=ece4c096-1a40-4021-9a9c-84cbab5e4755&response_type=code&scope=YouTrack&redirect_uri=https://ks54.redguy.ru/redirect/&access_type=offline"}]
+            ]
+        }
+    })
+});
+
+bot.command("issue", async (ctx) => {
+    let regex = /issue (?<project>[^ ]+) (?<name>.+)\n?(?<description>.+)?/.exec(ctx.message.text);
+    if(!regex) return;
+    let project = await youtrack.searchProject(ctx.from.id, regex.groups.project);
+    let name = regex.groups.name;
+    let description = regex.groups.description||"";
+    if(ctx.message.reply_to_message) {
+        description += "\n\n" + ctx.message.reply_to_message.text;
+    }
+    description = description.trim();
+    let issueId = await youtrack.createIssue(ctx.from.id, project.id, name, description);
+    await ctx.reply(`${issueId}: Задача "${name}" создана в проекте ${project.name}\n<a href="https://yt.kioskapi.ru/issue/${issueId}">Открыть</a>`, {parse_mode: "HTML"});
+})
 
 bot.action(/^menu/, async (ctx) => {
     await ctx.editMessageText("Привет, я бот Коллежда Связи 54 им. П. М. Вострухина.\n\nЯ помогу тебе ориентироваться в учебном здании и твоём расписании.",
@@ -405,6 +448,33 @@ bot.on("text", async (ctx) => {
 bot.catch((err, ctx) => console.log(err, ctx)) // Print error and error context to console, no crash
 
 bot.startPolling();
+
+site.get("/redirect/", async (req, res) => {
+    let code = req.query.code;
+    //oauth2 code flow token request
+    try {
+        let params = new (require('url').URLSearchParams)();
+        params.set("grant_type", "authorization_code");
+        params.set("code", code);
+        params.set("access_type", "offline");
+        params.set("scope", "YouTrack");
+        params.set("redirect_uri", "https://ks54.redguy.ru/redirect/");
+        let resp = await axios.post("https://yt.kioskapi.ru/hub/api/rest/oauth2/token", params.toString(), {
+            auth: {
+                username: "ece4c096-1a40-4021-9a9c-84cbab5e4755",
+                password: process.env.YOUTRACK_SECRET
+            },
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        });
+        let id = await database.addTemporalToken(resp.data.access_token, resp.data.refresh_token);
+        res.redirect("https://t.me/rks54bot?start=token_" + id);
+    } catch (e) {
+        console.log(e);
+        res.send("Ошибка авторизации");
+    }
+});
+
+site.listen(process.env.PORT || 3000);
 
 cron.schedule("0 0 0 * * *", async () => {
     await database.clearAero();
