@@ -101,4 +101,43 @@ module.exports = class YouTrack {
             });
         return res.data.idReadable;
     }
+
+    /**
+     *
+     * @param userId
+     * @param query
+     * @return {Promise<{error: null|string, results: {idReadable:string,summary:string,description:string,reporter:string,project:string,assignee:string,priority:string,state:string,dueDate:string|number}[]}>}
+     */
+    async searchIssues(userId, query) {
+        let res = await axios.get(this.baseUrl + `/issues?query=${encodeURIComponent(query)}&fields=id,summary,description,reporter(login),project(id,name,shortName),idReadable,customFields(name,value(name))&customFields=assignee&customFields=priority&customFields=state&customFields=due%20date`,
+            {
+                headers: {
+                    authorization: `Bearer ${await this.cache.get(userId)}`
+                },
+                validateStatus: (status) => status < 300 || status >= 400 && status < 500
+            });
+        if (res.data.error) {
+            return {
+                results: [],
+                error: res.data.error_children[0].error
+            };
+        } else {
+            return {
+                results: res.data.map(issue => {
+                    return {
+                        idReadable: issue.idReadable,
+                        summary: issue.summary,
+                        description: issue.description,
+                        reporter: issue.reporter.login,
+                        project: issue.project.name,
+                        assignee: issue.customFields.find(f => f.name === "Assignee")?.value?.map(u => u.name).join(", ") || "Нет",
+                        priority: issue.customFields.find(f => f.name === "Priority")?.value?.name,
+                        state: issue.customFields.find(f => f.name === "State")?.value?.name,
+                        dueDate: issue.customFields.find(f => f.name === "Due Date")?.value || "Нет",
+                    }
+                }),
+                error: null
+            }
+        }
+    }
 }

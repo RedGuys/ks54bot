@@ -96,7 +96,49 @@ bot.command("issue", async (ctx) => {
     description = description.trim();
     let issueId = await youtrack.createIssue(ctx.from.id, project.id, name, description);
     await ctx.reply(`${issueId}: Задача "${name}" создана в проекте ${project.name}\n<a href="https://yt.kioskapi.ru/issue/${issueId}">Открыть</a>`, {parse_mode: "HTML"});
-})
+});
+
+bot.command("test", async (ctx) => {
+    await youtrack.searchProject(ctx.from.id, "SH");
+});
+
+bot.on("inline_query", async (ctx) => {
+    let results = await youtrack.searchIssues(ctx.inlineQuery.from.id, ctx.inlineQuery.query);
+    let answer = [];
+    if(results.error) {
+        answer.push({
+            type: "article",
+            id: "error",
+            title: results.error,
+            input_message_content: {
+                message_text: `Ошибка в запросе ${results.error}`
+            }
+        });
+    } else {
+        for(let result of results.results.slice(0, 50)) {
+            let dateStr = "";
+            if(Number.isInteger(result.dueDate)) {
+                let date = new Date(result.dueDate);
+                dateStr = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+            }
+            result.description = result.description?.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+            answer.push({
+                type: "article",
+                id: result.idReadable,
+                title: result.idReadable + ": " + result.summary.slice(0, 100),
+                input_message_content: {
+                    message_text: `${result.idReadable}: <a href="https://yt.kioskapi.ru/issue/${result.idReadable}">${result.summary}</a> (${result.state})\nПроект: ${result.project}\nАвтор: ${result.reporter}\nИсполнители: ${result.assignee}\nПриоритет: ${result.priority}\nДедлайн: ${dateStr}\n\n${result.description}`,
+                    parse_mode: "HTML"
+                },
+                description: result.description?.slice(0, 100),
+            });
+        }
+    }
+    await ctx.answerInlineQuery(answer, {
+        cache_time: 60,
+        is_personal: true
+    });
+});
 
 bot.action(/^menu/, async (ctx) => {
     await ctx.editMessageText("Привет, я бот Коллежда Связи 54 им. П. М. Вострухина.\n\nЯ помогу тебе ориентироваться в учебном здании и твоём расписании.",
