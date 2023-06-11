@@ -29,6 +29,7 @@ let site = Express();
 let youtrack = new YouTrack("https://yt.kioskapi.ru/api", database);
 
 bot.use(async (ctx, next) => {
+    if(!ctx.from) return;
     if (!ctx.from.id) return;
     let start = new Date();
     ctx.userdata = await database.prepareUser(ctx.from.id);
@@ -56,13 +57,13 @@ bot.use(async (ctx, next) => {
 });
 
 bot.start(async (ctx) => {
-    if(/ (\w+)/.test(ctx.message.text)) {
+    if (/ (\w+)/.test(ctx.message.text)) {
         let rg = / (?<data>\w+)/.exec(ctx.message.text);
         let parts = rg.groups.data.split("_");
         switch (parts[0]) {
             case "token": {
                 let token = await database.getTemporalToken(parts[1]);
-                if(!token) return;
+                if (!token) return;
                 await database.setToken(ctx.from.id, token.access_token, token.refresh_token);
                 await ctx.reply("Вы успешно авторизовались");
                 break;
@@ -78,7 +79,10 @@ bot.command("authorize", async (ctx) => {
     await ctx.reply("Для авторизации нажмите на кнопку", {
         reply_markup: {
             inline_keyboard: [
-                [{text: "Авторизоваться", url: "https://yt.kioskapi.ru/hub/api/rest/oauth2/auth?client_id=ece4c096-1a40-4021-9a9c-84cbab5e4755&response_type=code&scope=YouTrack&redirect_uri=https://ks54.redguy.ru/redirect/&access_type=offline"}]
+                [{
+                    text: "Авторизоваться",
+                    url: "https://yt.kioskapi.ru/hub/api/rest/oauth2/auth?client_id=ece4c096-1a40-4021-9a9c-84cbab5e4755&response_type=code&scope=YouTrack&redirect_uri=https://ks54.redguy.ru/redirect/&access_type=offline"
+                }]
             ]
         }
     })
@@ -86,11 +90,11 @@ bot.command("authorize", async (ctx) => {
 
 bot.command("issue", async (ctx) => {
     let regex = /issue (?<project>[^ ]+) (?<name>.+)\n?(?<description>.+)?/.exec(ctx.message.text);
-    if(!regex) return;
+    if (!regex) return;
     let project = await youtrack.searchProject(ctx.from.id, regex.groups.project);
     let name = regex.groups.name;
-    let description = regex.groups.description||"";
-    if(ctx.message.reply_to_message) {
+    let description = regex.groups.description || "";
+    if (ctx.message.reply_to_message) {
         description += "\n\n" + ctx.message.reply_to_message.text;
     }
     description = description.trim();
@@ -105,7 +109,7 @@ bot.command("test", async (ctx) => {
 bot.on("inline_query", async (ctx) => {
     let results = await youtrack.searchIssues(ctx.inlineQuery.from.id, ctx.inlineQuery.query);
     let answer = [];
-    if(results.error) {
+    if (results.error) {
         answer.push({
             type: "article",
             id: "error",
@@ -115,9 +119,9 @@ bot.on("inline_query", async (ctx) => {
             }
         });
     } else {
-        for(let result of results.results.slice(0, 50)) {
+        for (let result of results.results.slice(0, 50)) {
             let dateStr = "";
-            if(Number.isInteger(result.dueDate)) {
+            if (Number.isInteger(result.dueDate)) {
                 let date = new Date(result.dueDate);
                 dateStr = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
             }
@@ -429,11 +433,21 @@ bot.action(/calls/, async (ctx) => {
 
 bot.on("text", async (ctx) => {
     if (!ctx.session.state) {
-        let staff = kioskBase.searchStaff(ctx.message.text.replaceAll(".", " "));
-        if (staff == null) return;
-        await ctx.replyWithPhoto("http://old.kioskapi.ru/terminal/media/teachers/" + staff.id, Telegraf.Extra
-            .caption(`${staff.name} - ${staff.post}\nКабинет: ${staff.cab}`)
-            .markup(m => m.inlineKeyboard([[m.callbackButton("Закрыть", "deleteMessage")]])));
+        if (ctx.message.reply_to_message) {
+            if (/^(?<id>\w{1,4}-\d+):/.test(ctx.message.reply_to_message.text)) {
+                let id = ctx.message.reply_to_message.text.match(/^(?<id>\w{1,4}-\d+):/).groups.id;
+                if (ctx.message.text.startsWith("/")) {
+
+                } else {
+                    if (await youtrack.isUserAuthorized(ctx.message.from.id)) {
+                        await youtrack.createComment(ctx.message.from.id, id, ctx.message.text);
+                    } else {
+                        await youtrack.createAnonymousComment(id, `${ctx.from.first_name} ${ctx.from.last_name || ""} (${ctx.from.username || ctx.from.id})`, ctx.message.text);
+                    }
+                    await ctx.reply("Комментарий добавлен!");
+                }
+            }
+        }
     } else {
         switch (ctx.session.state) {
             case "aero_fio": {

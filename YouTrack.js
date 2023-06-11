@@ -140,4 +140,37 @@ module.exports = class YouTrack {
             }
         }
     }
+
+    async isUserAuthorized(userId) {
+        let token = await this.cache.get(userId);
+        if(token === null) {
+            await this.cache.delete(userId);
+            return false;
+        }
+        return true;
+    }
+
+    async createComment(userId, issueId, text) {
+        let res = await axios.post(this.baseUrl + `/issues/${issueId}/comments?fields=`+encodeURIComponent(`id,author(login,name,id),deleted,text,updated,visibility(permittedGroups(name,id),permittedUsers(id,name,login))`), {
+                text
+            },
+            {
+                headers: {
+                    authorization: `Bearer ${await this.cache.get(userId)}`
+                }
+            });
+        return res.data.id;
+    }
+
+    async createAnonymousComment(issueId, author, text) {
+        let res = await axios.post(this.baseUrl + `/issues/${issueId}/comments?fields=`+encodeURIComponent(`id,author(login,name,id),deleted,text,updated,visibility(permittedGroups(name,id),permittedUsers(id,name,login))`), {
+                text: author + ":\n" + text
+            },
+            {
+                headers: {
+                    authorization: `Bearer ${process.env.ANON_TOKEN}`
+                }
+            });
+        return res.data.id;
+    }
 }
