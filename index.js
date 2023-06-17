@@ -9,6 +9,10 @@ const logger = log4js.getLogger("Main");
 const Express = require("express");
 const axios = require("axios");
 const YouTrack = require("./YouTrack");
+const MarkdownIt = require("markdown-it");
+let md = new MarkdownIt({
+
+});
 
 log4js.configure({
     appenders: {
@@ -131,7 +135,7 @@ bot.on("inline_query", async (ctx) => {
                 id: result.idReadable,
                 title: result.idReadable + ": " + result.summary.slice(0, 100),
                 input_message_content: {
-                    message_text: `${result.idReadable}: <a href="https://yt.kioskapi.ru/issue/${result.idReadable}">${result.summary}</a> (${result.state})\nПроект: ${result.project}\nАвтор: ${result.reporter}\nИсполнители: ${result.assignee}\nПриоритет: ${result.priority}\nДедлайн: ${dateStr}\n\n${result.description}`,
+                    message_text: `${result.idReadable}: <a href="https://yt.kioskapi.ru/issue/${result.idReadable}">${result.summary}</a> (${result.state})\nПроект: ${result.project}\nАвтор: ${result.reporter}\nИсполнители: ${result.assignee}\nПриоритет: ${result.priority}\nДедлайн: ${dateStr}\n\n${md.renderInline(result.description)}`,
                     parse_mode: "HTML"
                 },
                 description: result.description?.slice(0, 100),
