@@ -18,10 +18,49 @@ class KioskBase {
     }
 
     async getOPs() {
-        let req = await axios.get("https://kioskapi.ru/wp-json/wp/v2/categories");
-        let categories = req.data;
-        categories = categories.filter((item) => item.id !== 14);
-        return categories;
+        // api are dead, so we use static data
+        return [
+            {
+                id: 1,
+                name: "Центр Телекоммуникации",
+                address: "улица Большие Каменщики, дом 7",
+            },
+            {
+                id: 2,
+                name: "Центр Общеобразовательной подготовки",
+                address: "улица Речников, дом 28",
+            },
+            {
+                id: 3,
+                name: "Центр Дополнительного образования",
+                address: "улица Судакова, дом 18а",
+            },
+            {
+                id: 4,
+                name: "Центр Дополнительного образования «Юный Автомобилист»",
+                address: "улица Корнейчука, дом 55а",
+            },
+            {
+                id: 5,
+                name: "Центр Информационной безопасности",
+                address: "улица Кирпичная, дом 33а",
+            },
+            {
+                id: 6,
+                name: "Центр Автоматизации и ИТ",
+                address: "улица Рязанский проспект, дом 8",
+            },
+            {
+                id: 7,
+                name: "Центр Радиоэлектроники",
+                address: "улица Рабочая, дом 12"
+            },
+            {
+                id: 8,
+                name: "Центр Электроснабжения и Автотранспорта",
+                address: "улица Басовская, дом 12"
+            }
+        ];
     }
 
     async getScheduleCalls(op) {

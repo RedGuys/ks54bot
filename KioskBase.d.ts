@@ -19,10 +19,8 @@ export class ScheduleCall {
 
 export class OP {
     id: number;
-    description: string;
-    link: string;
     name: string;
-    slug: string;
+    address: string;
 }
 
 export class Staff {
