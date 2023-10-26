@@ -426,6 +426,10 @@ bot.action(/deleteMessage/, async (ctx) => {
 
 bot.action(/calls/, async (ctx) => {
     let calls = await kioskBase.getScheduleCalls(ctx.userdata.korpus);
+    if(calls.length===0) {
+        await ctx.editMessageText("Информации об ОП ещё нет :(", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+        return
+    }
     let text = "Расписание звонков:\n";
     for (let call of calls) {
         text += `${call.pair_number} пара: ${call.first_start} - ${call.first_end} | ${call.second_start} - ${call.second_end}\n`;
