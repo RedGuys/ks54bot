@@ -10,9 +10,7 @@ const Express = require("express");
 const axios = require("axios");
 const YouTrack = require("./YouTrack");
 const MarkdownIt = require("markdown-it");
-let md = new MarkdownIt({
-
-});
+let md = new MarkdownIt({});
 
 log4js.configure({
     appenders: {
@@ -33,7 +31,7 @@ let site = Express();
 let youtrack = new YouTrack("https://yt.kioskapi.ru/api", database);
 
 bot.use(async (ctx, next) => {
-    if(!ctx.from) return;
+    if (!ctx.from) return;
     if (!ctx.from.id) return;
     let start = new Date();
     ctx.userdata = await database.prepareUser(ctx.from.id);
@@ -293,7 +291,7 @@ bot.action(/select_korpus/, async (ctx) => {
     let x = 0;
     let row = [];
     for (let i = 0; i < ops.length; i++) {
-        row.push(Telegraf.Markup.callbackButton(ops[i].name + " - " + ops[i].id, "confirm_korpus_" + ops[i].id));
+        row.push(Telegraf.Markup.callbackButton("ОП " + ops[i].id + " - " + ops[i].name, "confirm_korpus_" + ops[i].id));
         x++;
         if (x === 2) {
             keyboard.push(row);
@@ -428,6 +426,10 @@ bot.action(/deleteMessage/, async (ctx) => {
 
 bot.action(/calls/, async (ctx) => {
     let calls = await kioskBase.getScheduleCalls(ctx.userdata.korpus);
+    if(calls.length===0) {
+        await ctx.editMessageText("Информации об ОП ещё нет :(", Telegraf.Extra.markup(m => m.inlineKeyboard([[m.callbackButton("Назад", "menu")]])));
+        return
+    }
     let text = "Расписание звонков:\n";
     for (let call of calls) {
         text += `${call.pair_number} пара: ${call.first_start} - ${call.first_end} | ${call.second_start} - ${call.second_end}\n`;

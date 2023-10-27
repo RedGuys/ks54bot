@@ -64,9 +64,18 @@ class KioskBase {
     }
 
     async getScheduleCalls(op) {
-        /*let req = await axios.get("https://kioskapi.ru/wp-json/wp/v2/categories");
-        let categories = req.data;
-        categories;*/
+        switch (op.toString()) {
+            case "5": {
+                return [
+                    {pair_number: 1,first_start: "9:00",first_end: "9:45",second_start: "9:55",second_end: "10:40"},
+                    {pair_number: 2,first_start: "11:00",first_end: "11:45",second_start: "12:05",second_end: "12:50"},
+                    {pair_number: 3,first_start: "13:10",first_end: "13:55",second_start: "14:15",second_end: "15:00"},
+                    {pair_number: 4,first_start: "15:20",first_end: "16:05",second_start: "16:15",second_end: "17:00"},
+                    {pair_number: 5,first_start: "17:10",first_end: "17:55",second_start: "18:05",second_end: "18:50"},
+                ];
+            }
+        }
+        return [];
     }
 
     searchStaff(text) {
