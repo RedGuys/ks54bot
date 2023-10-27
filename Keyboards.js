@@ -18,7 +18,6 @@ module.exports = class Keyboard {
         if (ctx.userdata.username !== "" && ctx.userdata.user_password !== "") {
             row = [];
             row.push(Telegraf.Markup.callbackButton("Тип недели", "get_week_type"));
-            row.push(Telegraf.Markup.callbackButton("Расписание", "get_schedules"));
             row.push(Telegraf.Markup.callbackButton("Статус справок", "get_documents"));
             keyboard.push(row);
         }
