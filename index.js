@@ -28,7 +28,7 @@ bot.use(session());
 let database = new Database(process.env.DATABASE_URL);
 let keyboards = require("./Keyboards");
 let site = Express();
-let youtrack = new YouTrack("https://yt.kioskapi.ru/api", database);
+let youtrack = new YouTrack("https://syt.redguy.ru/api", database);
 
 bot.use(async (ctx, next) => {
     if (!ctx.from) return;
@@ -83,7 +83,7 @@ bot.command("authorize", async (ctx) => {
             inline_keyboard: [
                 [{
                     text: "Авторизоваться",
-                    url: "https://yt.kioskapi.ru/hub/api/rest/oauth2/auth?client_id=ece4c096-1a40-4021-9a9c-84cbab5e4755&response_type=code&scope=YouTrack&redirect_uri=https://ks54.redguy.ru/redirect/&access_type=offline"
+                    url: "https://syt.redguy.ru/hub/api/rest/oauth2/auth?client_id=ece4c096-1a40-4021-9a9c-84cbab5e4755&response_type=code&scope=YouTrack&redirect_uri=https://ks54.redguy.ru/redirect/&access_type=offline"
                 }]
             ]
         }
@@ -101,7 +101,7 @@ bot.command("issue", async (ctx) => {
     }
     description = description.trim();
     let issueId = await youtrack.createIssue(ctx.from.id, project.id, name, description);
-    await ctx.reply(`${issueId}: Задача "${name}" создана в проекте ${project.name}\n<a href="https://yt.kioskapi.ru/issue/${issueId}">Открыть</a>`, {parse_mode: "HTML"});
+    await ctx.reply(`${issueId}: Задача "${name}" создана в проекте ${project.name}\n<a href="https://syt.redguy.ru/issue/${issueId}">Открыть</a>`, {parse_mode: "HTML"});
 });
 
 bot.command("test", async (ctx) => {
@@ -133,7 +133,7 @@ bot.on("inline_query", async (ctx) => {
                 id: result.idReadable,
                 title: result.idReadable + ": " + result.summary.slice(0, 100),
                 input_message_content: {
-                    message_text: `${result.idReadable}: <a href="https://yt.kioskapi.ru/issue/${result.idReadable}">${result.summary}</a> (${result.state})\nПроект: ${result.project}\nАвтор: ${result.reporter}\nИсполнители: ${result.assignee}\nПриоритет: ${result.priority}\nДедлайн: ${dateStr}\n\n${md.renderInline(result.description)}`,
+                    message_text: `${result.idReadable}: <a href="https://syt.redguy.ru/issue/${result.idReadable}">${result.summary}</a> (${result.state})\nПроект: ${result.project}\nАвтор: ${result.reporter}\nИсполнители: ${result.assignee}\nПриоритет: ${result.priority}\nДедлайн: ${dateStr}\n\n${md.renderInline(result.description)}`,
                     parse_mode: "HTML"
                 },
                 description: result.description?.slice(0, 100),
@@ -521,7 +521,7 @@ site.get("/redirect/", async (req, res) => {
         params.set("access_type", "offline");
         params.set("scope", "YouTrack");
         params.set("redirect_uri", "https://ks54.redguy.ru/redirect/");
-        let resp = await axios.post("https://yt.kioskapi.ru/hub/api/rest/oauth2/token", params.toString(), {
+        let resp = await axios.post("https://syt.redguy.ru/hub/api/rest/oauth2/token", params.toString(), {
             auth: {
                 username: "ece4c096-1a40-4021-9a9c-84cbab5e4755",
                 password: process.env.YOUTRACK_SECRET
