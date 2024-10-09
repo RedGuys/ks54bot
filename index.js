@@ -1,5 +1,5 @@
-const Telegraf = require('telegraf');
-const session = require('telegraf/session');
+const Telegraf = require('regraf');
+const session = require('regraf/session');
 const Database = require('./Database');
 const Api = require('./Api');
 const kisok = require('./KioskBase');

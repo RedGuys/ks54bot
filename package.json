@@ -21,9 +21,9 @@
     "node-html-parser": "^5.4.2",
     "node-redguy-api": "^1.2.8",
     "pg": "^8.8.0",
+    "regraf": "^1.1.6",
     "rgcache": "^1.0.7",
-    "string-similarity": "^4.0.4",
-    "telegraf": "3.39"
+    "string-similarity": "^4.0.4"
   },
   "devDependencies": {
     "@types/node": "^18.7.14",

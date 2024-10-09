@@ -1,4 +1,4 @@
-const Telegraf = require("telegraf");
+const Telegraf = require("regraf");
 module.exports = class Keyboard {
     static populateMainMenuKeyboard(ctx) {
         let keyboard = [];
